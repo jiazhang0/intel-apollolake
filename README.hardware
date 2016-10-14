@@ -1,0 +1,132 @@
+		Intel X86-Apollolake-i BSP
+
+Table of Contents
+=================
+
+1. Supported Boards
+2. Change History
+3. BSP Features
+4. BSP Notes
+
+1. Supported Boards
+===================
+
+This BSP supports the following boards:
+
+  + Oxbow Hill /Leaf Hill boards: intel apollolake-i processor
+
+2. Change History
+=================
+  - 2016/10 (US85804) Add intel-apollolake-i support in WRLinux 8.0.0.11.
+
+3. BSP Features
+===============
+
+3.1 Supported Features
+----------------------
+
+The following BSP features are validated and supported on boards where
+the corresponding h/w features exist.
+
+  o General Platform
+	+ perf: H/W based PMU
+
+  o Bus
+	+ PCI/PCI-Express
+	+ I2C/SMBus:
+		+ Intel i801 family I2C/SMBus controller
+
+  o Network
+        + Intel IGB Ethernet:
+                + Intel Corporation I210 Gigabit Network Connection
+
+  o USB
+	+ USB Host:
+		+ USB 3.0 XHCI controller
+
+  o Storage
+	+ SATA: AHCI SATA controller
+	+ eMMC/SDIO/SD card: Secure Digital Host Controller
+
+  o Multimedia
+	+ Graphics:
+		+ Intel Corporation I915 Integrated Graphics Controller
+
+  o Power Management
+	+ CPU Freq: ACPI P-state
+	+ CPU Idle: ACPI C-state
+
+  o Misc Devices
+	+ UART: 8250/16550A compatible serial port
+	+ RTC: PC-style CMOS RTC
+	+ Input deivce
+		+ USB mouse & keyboard
+	+ Watchdog: Intel iTCO H/W Watchdog timer
+	+ HW Monitor: Intel CPU core temperature sensor
+
+  o Graphics Acceleration:
+	WRLinux has integrated the following packages to support 2D/3D graphics acceleration
+
+        xserver-xorg-1.17.2
+        libdrm-2.4.67
+        mesa-11.2.1
+        xf86-video-intel-2.99.917
+
+3.2 Unsupported Features
+------------------------
+
+The following features are not supported or validated:
+
+	x IPU
+	x Media Engine
+	x USB OTG
+	x Intel HD Audio
+	x SPI
+
+4. BSP Notes
+============
+
+4.1 Oxbow Hill
+==============
+
+4.1.1 Validated Board Info
+--------------------------
+
+This BSP is only validated in following environment. If you use this BSP
+in a different environment it may possibly have some issues.
+
+        [Board info]
+        Vendor: Intel Corporation
+
+        [BIOS info]
+        Core Version: APLI_IFWI_X86_R_2016_02_18_1725
+        Project Version: APLIRVPA.X64.0123.B12.1602190122
+
+        [Processor info]
+        Codename: intel apollolake-i
+        Brand: Intel(R) Core(TM) i7-6700 CPU @ 3.40GHZ
+        Core: 4
+        Stepping: 8
+
+
+4.2 Leaf Hill
+=============
+
+4.2.1 Validated Board Info
+--------------------------
+
+This BSP is only validated in following environment. If you use this BSP
+in a different environment it may possibly have some issues.
+
+        [Board info]
+        Vendor: Intel Corporation
+
+        [BIOS info]
+        Core Version: APLI_IFWI_X86_R_2016_02_18_1725
+        Project Version: APLIRVPA.X64.0123.B12.1602190122
+
+        [Processor info]
+        Codename: intel apollolake-i
+        Brand: Intel(R) Core(TM) i7-6700 CPU @ 3.40GHZ
+        Core: 4
+        Stepping: 8

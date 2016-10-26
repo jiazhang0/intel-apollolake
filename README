@@ -502,52 +502,10 @@ On some boards an ACPI resource conflicts with SMBus. By default, the
 functionality of SMBus is disabled. To enable SMBus, please append
 "acpi_enforce_resources=lax" to your kenrel parameters.
 
-5.9 EDAC
-=========
-
-5.9.1 Introduction
--------------------
-
-EDAC is designed to report errors in the core system. These are low-level
-errors that are reported in the CPU or associated chipset, or other
-subsystems such as memory, cache, TLB, PCI/PCIE, etc..
-
-5.9.2 Usage and verification
------------------------------
-
-Run the following commands to verify EDAC support:
-
-	$ modprobe einj param_extension=1
-	$ mount -t debugfs nodev /mnt
-	$ cd /mnt/apei/einj/
-	$ cat available_error_type
-	0x00000002	Processor Uncorrectable non-fatal
-	0x00000008	Memory Correctable
-	0x00000010	Memory Uncorrectable non-fatal
-	0x00000020	Memory Uncorrectable fatal
-	$ echo 0x12345000 > param1
-	$ echo 0xfffffffffffff000 > param2
-	$ echo 0x8 > error_type
-	$ echo 1 > error_inject
-	$ edac-util --report=ce
-        CE: 1
-
-Note:
-1. param_extension=1 may not be required on some machines, such as Hanlan
-Creek.
-2. einj is not enabled in default kernel config, you have to enable it:
-in CONFIG_ACPI enable CONFIG_ACPI_APEI and choose CONFIG_ACPI_APEI_EINJ as
-module.
-
-5.9.3 Target Notes
--------------------
-
-Please see Documentation/edac.txt for more details.
-
-5.10 kexec/kdump
+5.9 kexec/kdump
 ================
 
-5.10.1 Introduction
+5.9.1 Introduction
 -------------------
 
 kexec is a system call that implements the ability to shutdown your current
@@ -555,7 +513,7 @@ kernel (so-called system kernel) and start another kernel (so-called dump-
 capture kernel). kdump features a generation of crash dump after being started
 by kexec.
 
-5.10.2 Usage and verification
+5.9.2 Usage and verification
 -----------------------------
 
 To add kexec/kdump kernel features and the tools to rootfs, use the following options
@@ -584,7 +542,7 @@ Then, issue a kernel crash:
 After dump-capture kernel starts up, run makedumpfile to dump kernel core file
 for analysis.
 
-5.11 Intel_rapl
+5.10 Intel_rapl
 ===============
 The RAPL driver is implemented as a power cap driver.
 

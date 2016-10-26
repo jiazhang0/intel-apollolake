@@ -55,9 +55,9 @@ for not supported:
 --------------------------------------------------------------------
 | kernel/rootfs | glibc-std | glibc-small | glibc-cgl | glibc-tiny |
 --------------------------------------------------------------------
-|   standard    |     Y     |      N     |     N     |     N      |
+|   standard    |     Y     |      Y     |     N     |     N      |
 --------------------------------------------------------------------
-|   preempt-rt  |     Y     |      N      |     N     |     N      |
+|   preempt-rt  |     Y     |      Y      |     N     |     N      |
 --------------------------------------------------------------------
 |   cgl         |     N     |      N      |     N     |     N      |
 --------------------------------------------------------------------
@@ -103,10 +103,8 @@ when startup.sh is invoked.
 4.2 Rootfs methods
 ==================
 
-The SATA/SAS hard disk, USB storage device, NFS and Intel RST RAID 0 volume are
-enabled in the kernel as potential root filesystem devices.
-Note that only Intel RST RAID 0 volume as rootfs is supported on some
-targets.
+The SATA/SAS hard disk, USB storage device and NFS are enabled in the kernel as
+potential root filesystem devices.
 
 4.2.1 SATA/SAS
 --------------
@@ -152,29 +150,6 @@ For example:
 In the example shown above, an nfs server is located at 192.168.0.1, and the
 exported mount point via nfs makes /export/pxeboot/boards/rootfs available.
 
-4.2.4 initramfs on tiny filesystem
-----------------------------------
-
-Use initramfs as rootfs in EFI boot with the following steps:
-
-       fs0:\> bzImage.efi initrd=./intel-x86-xx-wrlinux-image-glibc-tiny-tiny-dist.cpio.gz
-
-Or if bzImage-initramfs.efi is equal to bzImage + initramfs:
-
-       fs0:\> bzImage-initramfs.efi console=ttyS0,115200
-
-Note:
-  Not all standard kernel config fragments of this BSP are enabled in the
-  WRLinux tiny kernel and filesystem. You can easily add required fragments as
-  follows:
-
-       # cd path_to_your_project/build
-       # make linux-windriver.menuconfig
-       # make linux-windriver.rebuild
-
-  Or use the following command to re-config busybox:
-       # make busybox.menuconfig
-
 4.3 Boot from the Live Images
 =============================
 
@@ -209,44 +184,19 @@ The method of deploying this image is the same as USB image does.
 
 This section describes common features which are available on most targets.
 
-5.1 iTCO Watchdog
-=================
-
-5.1.1 Introduction
-------------------
-
-The Intel TCO timer-based watchdog device will reboot the machine after its
-timer expires (30 seconds by default).
-
-5.1.2 Usage and verification
-----------------------------
-
-The iTCO Watchdog can be accessed via /dev/watchdog. To reboot the machine,
-write a value to the iTCO Watchdog like this:
-
-	$ echo 1 > /dev/watchdog
-
-To stop the watchdog, run:
-
-	$ echo V > /dev/watchdog
-
-Note:
-The watchdog cannot be stopped once it has been started if
-CONFIG_WATCHDOG_NOWAYOUT is enabled.
-
-5.2 Standby (ACPI S1), Suspend to RAM (ACPI S3) & Suspend to Disk (ACPI S4)
+5.1 Standby (ACPI S1), Suspend to RAM (ACPI S3) & Suspend to Disk (ACPI S4)
 ===========================================================================
 
-5.2.1 Introduction
+5.1.1 Introduction
 ------------------
 
 These features allow the system to enter sleep states which reduce power
 consumption.
 
-5.2.2 System requirements
+5.1.2 System requirements
 -------------------------
 
-5.2.3 Usage and verification
+5.1.3 Usage and verification
 ----------------------------
 
 1) Put the system in the ACPI S1 state until a specified wakeup time.
@@ -267,23 +217,23 @@ The system will resume its normal state after 20 seconds.
 	$ mkswap /dev/sda2
 	$ attach "resume=/dev/sda2" kernel parameter and then reboot.
 	$ swapon /dev/sda2
-	$ rtcwake -m disk -s 120
+	$ echo disk >/sys/power/state
 
 ACPI S4 requires more time to recover to a normal state.
 
 Note: If ACPI S3 functionality is enabled, NFS root cannot be used. Only
 disk based roots (sata/sas/raid/etc) are stable when combined with ACPI S3.
 
-5.3 CPU Hot Plug
+5.2 CPU Hot Plug
 ================
 
-5.3.1 Introduction
+5.2.1 Introduction
 ------------------
 
 This feature allows turning CPUs off and on. CPUs can be controlled through
 /sys/devices/system/cpu.
 
-5.3.2 Usage and verification
+5.2.2 Usage and verification
 ----------------------------
 
 1) Unplug non-bootstrap CPUs from system:
@@ -309,15 +259,15 @@ are removed from system.
 
 The expected result will return all 1s, indicating that the CPUs are online now.
 
-5.3.3 Target Notes
+5.2.3 Target Notes
 ------------------
 
 Bootstrap CPU is always numbered with zero and does *NOT* support CPU Hot Plug.
 
-5.4 CPUidle (ACPI C-states)
+5.3 CPUidle (ACPI C-states)
 ===========================
 
-5.4.1 Introduction
+5.3.1 Introduction
 ------------------
 
 CPU idle is a generic framework for supporting software-controlled idle
@@ -329,7 +279,7 @@ hardware idle features is provided. Note that the acpi_idle driver can be
 configured at the same time, in order to handle processors that intel_idle
 does not support.
 
-5.4.2 Usage and verification
+5.3.2 Usage and verification
 ----------------------------
 
 You must use "cpuidle_sysfs_switch" in your kernel parameters, and then
@@ -340,17 +290,17 @@ follow the step below:
 where the each line of results represents the number of times this state was
 entered.
 
-5.5 CPUfreq (Intel P state)
+5.4 CPUfreq (Intel P state)
 ===========================
 
-5.5.1 Introduction
+5.4.1 Introduction
 ------------------
 The intel_pstate driver provides the internal governor that implements
-the scaling driver for Haswell and Broadwell processors. intel_pstate
-replaces the existing acpi pstates drivers, and is the preferred scaling
-driver for these class of systems.
+the scaling driver for Goldmont processors. intel_pstate replaces the existing
+acpi pstates drivers, and is the preferred scaling driver for these class of
+systems.
 
-5.5.2 Usage and verification
+5.4.2 Usage and verification
 ------------------------------
 
 1) Check the intel_pstate driver:
@@ -404,10 +354,10 @@ In this example the CPU is running at 1200MHz after changing the frequency.
 	user	0m0.642s
 	sys	0m1.224s
 
-5.8 SATA (AHCI)
+5.5 SATA (AHCI)
 ===============
 
-5.8.1 Introduction
+5.5.1 Introduction
 ------------------
 
 The AHCI SATA controllers offers selectable modes of operation: legacy Parallel
@@ -415,7 +365,7 @@ ATA emulation (IDE), standard AHCI mode, and vendor-specific RAID (which
 generally enables AHCI in order to take advantage of its capabilities). This
 BSP supports the later 2 modes.
 
-5.8.2 System requirements
+5.5.2 System requirements
 -------------------------
 
 You must configure the BIOS properly to enable the standard
@@ -426,28 +376,28 @@ setting:
 		SATA Controller(s)	[Enabled]
 		SATA Mode Selection	[AHCI]
 
-5.8.3 Usage and verification
+5.5.3 Usage and verification
 ----------------------------
 
 1) Use a SATA hard disk as boot device and install rootfs to it.
 2) eSATA supports hot plugging, so the cable can be disconnected and then
 reconnected at runtime.
 
-5.9 USB xHCI Host and USB 3.0 Storage Device
+5.6 USB xHCI Host and USB 3.0 Storage Device
 ============================================
 
-5.9.1 Introduction
+5.6.1 Introduction
 ------------------
 
 The eXtensible Host Controller Interface (xHCI) is standard for USB 3.0
 "SuperSpeed" host controller hardware.
 
-5.9.2 System requirements
+5.6.2 System requirements
 -------------------------
 
 An USB 3.0 stroage device is required.
 
-5.9.3 Usage and verification
+5.6.3 Usage and verification
 ----------------------------
 
 1) Use hdparm to benchmark the performance between USB 2.0 and 3.0:
@@ -466,27 +416,13 @@ Note:
 /dev/sdc is a USB 2.0 storage device attached on USB 2.0 port.
 /dev/sdd is a USB 3.0 storage device attached on USB 3.0 port.
 
-	$ hdparm -tT /dev/sdc /dev/sdd
-
-	/dev/sdc:
-	 Timing cached reads:   11172 MB in  2.00 seconds = 5591.51 MB/sec
-	 Timing buffered disk reads:   28 MB in  3.03 seconds =   9.23 MB/sec
-
-	/dev/sdd:
-	 Timing cached reads:   12110 MB in  2.00 seconds = 6061.86 MB/sec
-	 Timing buffered disk reads:   96 MB in  3.04 seconds =  31.62 MB/sec
-
-Note:
-/dev/sdc is a USB 2.0 storage device attached on USB 3.0 port.
-/dev/sdd is a USB 3.0 storage device attached on USB 2.0 port.
-
 2) Use an USB 3.0 storage device as boot device and install rootfs on it:
 
 
-5.10 Intel HDA
+5.7 Intel HDA
 ==============
 
-5.10.1 Introduction
+5.7.1 Introduction
 -------------------
 
 This feature supports Intel "High Definition Audio" (Azalia) and
@@ -494,7 +430,7 @@ compatible devices. The driver enables the HD-audio controller. The
 appropriate codec drivers are necessary to enable Realtek HD-audio codec
 support such as ALC887/888 and HDMI/DisplayPort HD-audio.
 
-5.10.2 Usage and verification
+5.7.2 Usage and verification
 -----------------------------
 
 1) List the available playback devices.
@@ -544,40 +480,39 @@ Note:
 HDMI and DP do not support record feature. Only Stereo 44100 Hz PCM format is
 validated.
 
-5.11 SMBus
+5.8 SMBus
 ==========
 
-5.11.1 Introduction
+5.8.1 Introduction
 -------------------
 
 Intel 801 family of mainboard I2C interfaces.
 
-5.11.2 Usage and verification
+5.8.2 Usage and verification
 -----------------------------
 
 Check the SMBus device:
 
-	$ modprobe i2c-dev
 	$ i2cdetect -l
 
-5.11.3 Target Notes
+5.8.3 Target Notes
 -------------------
 
 On some boards an ACPI resource conflicts with SMBus. By default, the
 functionality of SMBus is disabled. To enable SMBus, please append
 "acpi_enforce_resources=lax" to your kenrel parameters.
 
-5.12 EDAC
+5.9 EDAC
 =========
 
-5.12.1 Introduction
+5.9.1 Introduction
 -------------------
 
 EDAC is designed to report errors in the core system. These are low-level
 errors that are reported in the CPU or associated chipset, or other
 subsystems such as memory, cache, TLB, PCI/PCIE, etc..
 
-5.12.2 Usage and verification
+5.9.2 Usage and verification
 -----------------------------
 
 Run the following commands to verify EDAC support:
@@ -604,15 +539,15 @@ Creek.
 in CONFIG_ACPI enable CONFIG_ACPI_APEI and choose CONFIG_ACPI_APEI_EINJ as
 module.
 
-5.12.3 Target Notes
+5.9.3 Target Notes
 -------------------
 
 Please see Documentation/edac.txt for more details.
 
-5.15 kexec/kdump
+5.10 kexec/kdump
 ================
 
-5.15.1 Introduction
+5.10.1 Introduction
 -------------------
 
 kexec is a system call that implements the ability to shutdown your current
@@ -620,7 +555,7 @@ kernel (so-called system kernel) and start another kernel (so-called dump-
 capture kernel). kdump features a generation of crash dump after being started
 by kexec.
 
-5.15.2 Usage and verification
+5.10.2 Usage and verification
 -----------------------------
 
 To add kexec/kdump kernel features and the tools to rootfs, use the following options
@@ -649,7 +584,7 @@ Then, issue a kernel crash:
 After dump-capture kernel starts up, run makedumpfile to dump kernel core file
 for analysis.
 
-5.16 Intel_rapl
+5.11 Intel_rapl
 ===============
 The RAPL driver is implemented as a power cap driver.
 
@@ -668,4 +603,3 @@ Show intel_rapl status via sysfs:
 	short_term
 	25000000
 	2441
-

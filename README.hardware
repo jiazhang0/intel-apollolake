@@ -104,7 +104,7 @@ in a different environment it may possibly have some issues.
 
         [Processor info]
         Codename: intel apollolake-i
-        Brand: Intel(R) Core(TM) i7-6700 CPU @ 3.40GHZ
+        Brand: Intel(R) Atom(TM) CPU @ 1.6GHZ
         Core: 4
         Stepping: 8
 
@@ -127,6 +127,6 @@ in a different environment it may possibly have some issues.
 
         [Processor info]
         Codename: intel apollolake-i
-        Brand: Intel(R) Core(TM) i7-6700 CPU @ 3.40GHZ
+        Brand: Intel(R) Atom(TM) CPU @ 1.6GHZ
         Core: 4
         Stepping: 8

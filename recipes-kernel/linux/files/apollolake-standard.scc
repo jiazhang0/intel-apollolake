@@ -3,11 +3,11 @@
 # Standard ktype for 64 bit Intel® Atom E3900 SoC.
 #
 
-define KMACHINE leafhill
+define KMACHINE apollolake
 define KARCH x86_64
 define KTYPE standard
 
 include ktypes/standard/standard.scc
-include leafhill.scc
+include apollolake.scc
 
 branch intel/4.1.27/leaf-hill

@@ -10,4 +10,4 @@ include features/usb-net/usb-net.scc
 
 # This line comes last as it has the final word on
 # CONFIG values.
-kconf hardware leafhill.cfg
+kconf hardware apollolake.cfg

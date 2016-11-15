@@ -1,12 +1,5 @@
-# Reuse kernel config fragments from Intel Common BSP
-include bsp/intel-common/intel-common-drivers.scc
-include bsp/intel-common/intel-corei7-64.scc
-
-include features/debug/printk.cfg
-include features/i2c/i2c.scc
-include features/spi/spi.scc
-include features/usb/designware-usb3.scc
-include features/usb-net/usb-net.scc
+# Reuse kernel config fragments from Leaf Hill BSP
+include bsp/leafhill/leafhill.scc
 
 # This line comes last as it has the final word on
 # CONFIG values.

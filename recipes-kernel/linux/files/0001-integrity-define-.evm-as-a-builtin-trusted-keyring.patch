@@ -1,0 +1,203 @@
+From f4dc37785e9b3373d0cb93125d5579fed2af3a43 Mon Sep 17 00:00:00 2001
+From: Dmitry Kasatkin <dmitry.kasatkin@huawei.com>
+Date: Thu, 22 Oct 2015 21:26:10 +0300
+Subject: [PATCH] integrity: define '.evm' as a builtin 'trusted' keyring
+
+Require all keys added to the EVM keyring be signed by an
+existing trusted key on the system trusted keyring.
+
+This patch also switches IMA to use integrity_init_keyring().
+
+Changes in v3:
+* Added 'init_keyring' config based variable to skip initializing
+  keyring instead of using  __integrity_init_keyring() wrapper.
+* Added dependency back to CONFIG_IMA_TRUSTED_KEYRING
+
+Changes in v2:
+* Replace CONFIG_EVM_TRUSTED_KEYRING with IMA and EVM common
+  CONFIG_INTEGRITY_TRUSTED_KEYRING configuration option
+* Deprecate CONFIG_IMA_TRUSTED_KEYRING but keep it for config
+  file compatibility. (Mimi Zohar)
+
+Signed-off-by: Dmitry Kasatkin <dmitry.kasatkin@huawei.com>
+Signed-off-by: Mimi Zohar <zohar@linux.vnet.ibm.com>
+Signed-off-by: Lans Zhang <jia.zhang@windriver.com>
+---
+ security/integrity/Kconfig        | 11 +++++++++++
+ security/integrity/digsig.c       | 14 ++++++++++++--
+ security/integrity/evm/evm_main.c |  8 +++++---
+ security/integrity/ima/Kconfig    |  5 ++++-
+ security/integrity/ima/ima.h      | 12 ------------
+ security/integrity/ima/ima_init.c |  2 +-
+ security/integrity/integrity.h    |  5 ++---
+ 7 files changed, 35 insertions(+), 22 deletions(-)
+
+diff --git a/security/integrity/Kconfig b/security/integrity/Kconfig
+index 73c457b..21d7568 100644
+--- a/security/integrity/Kconfig
++++ b/security/integrity/Kconfig
+@@ -41,6 +41,17 @@ config INTEGRITY_ASYMMETRIC_KEYS
+ 	  This option enables digital signature verification using
+ 	  asymmetric keys.
+ 
++config INTEGRITY_TRUSTED_KEYRING
++	bool "Require all keys on the integrity keyrings be signed"
++	depends on SYSTEM_TRUSTED_KEYRING
++	depends on INTEGRITY_ASYMMETRIC_KEYS
++	select KEYS_DEBUG_PROC_KEYS
++	default y
++	help
++	   This option requires that all keys added to the .ima and
++	   .evm keyrings be signed by a key on the system trusted
++	   keyring.
++
+ config INTEGRITY_AUDIT
+ 	bool "Enables integrity auditing support "
+ 	depends on AUDIT
+diff --git a/security/integrity/digsig.c b/security/integrity/digsig.c
+index 5be9ffb..8ef1511 100644
+--- a/security/integrity/digsig.c
++++ b/security/integrity/digsig.c
+@@ -24,15 +24,22 @@
+ static struct key *keyring[INTEGRITY_KEYRING_MAX];
+ 
+ static const char *keyring_name[INTEGRITY_KEYRING_MAX] = {
++#ifndef CONFIG_INTEGRITY_TRUSTED_KEYRING
+ 	"_evm",
+-	"_module",
+-#ifndef CONFIG_IMA_TRUSTED_KEYRING
+ 	"_ima",
+ #else
++	".evm",
+ 	".ima",
+ #endif
++	"_module",
+ };
+ 
++#ifdef CONFIG_INTEGRITY_TRUSTED_KEYRING
++static bool init_keyring __initdata = true;
++#else
++static bool init_keyring __initdata;
++#endif
++
+ int integrity_digsig_verify(const unsigned int id, const char *sig, int siglen,
+ 			    const char *digest, int digestlen)
+ {
+@@ -68,6 +75,9 @@ int __init integrity_init_keyring(const unsigned int id)
+ 	const struct cred *cred = current_cred();
+ 	int err = 0;
+ 
++	if (!init_keyring)
++		return 0;
++
+ 	keyring[id] = keyring_alloc(keyring_name[id], KUIDT_INIT(0),
+ 				    KGIDT_INIT(0), cred,
+ 				    ((KEY_POS_ALL & ~KEY_POS_SETATTR) |
+diff --git a/security/integrity/evm/evm_main.c b/security/integrity/evm/evm_main.c
+index 1334e02..75b7e30 100644
+--- a/security/integrity/evm/evm_main.c
++++ b/security/integrity/evm/evm_main.c
+@@ -478,15 +478,17 @@ static int __init init_evm(void)
+ 
+ 	evm_init_config();
+ 
++	error = integrity_init_keyring(INTEGRITY_KEYRING_EVM);
++	if (error)
++		return error;
++
+ 	error = evm_init_secfs();
+ 	if (error < 0) {
+ 		pr_info("Error registering secfs\n");
+-		goto err;
++		return error;
+ 	}
+ 
+ 	return 0;
+-err:
+-	return error;
+ }
+ 
+ /*
+diff --git a/security/integrity/ima/Kconfig b/security/integrity/ima/Kconfig
+index df30334..a292b88 100644
+--- a/security/integrity/ima/Kconfig
++++ b/security/integrity/ima/Kconfig
+@@ -123,14 +123,17 @@ config IMA_APPRAISE
+ 	  If unsure, say N.
+ 
+ config IMA_TRUSTED_KEYRING
+-	bool "Require all keys on the .ima keyring be signed"
++	bool "Require all keys on the .ima keyring be signed (deprecated)"
+ 	depends on IMA_APPRAISE && SYSTEM_TRUSTED_KEYRING
+ 	depends on INTEGRITY_ASYMMETRIC_KEYS
++	select INTEGRITY_TRUSTED_KEYRING
+ 	default y
+ 	help
+ 	   This option requires that all keys added to the .ima
+ 	   keyring be signed by a key on the system trusted keyring.
+ 
++	   This option is deprecated in favor of INTEGRITY_TRUSTED_KEYRING
++
+ config IMA_LOAD_X509
+ 	bool "Load X509 certificate onto the '.ima' trusted keyring"
+ 	depends on IMA_TRUSTED_KEYRING
+diff --git a/security/integrity/ima/ima.h b/security/integrity/ima/ima.h
+index e2a60c3..9e82367 100644
+--- a/security/integrity/ima/ima.h
++++ b/security/integrity/ima/ima.h
+@@ -251,16 +251,4 @@ static inline int security_filter_rule_match(u32 secid, u32 field, u32 op,
+ 	return -EINVAL;
+ }
+ #endif /* CONFIG_IMA_LSM_RULES */
+-
+-#ifdef CONFIG_IMA_TRUSTED_KEYRING
+-static inline int ima_init_keyring(const unsigned int id)
+-{
+-	return integrity_init_keyring(id);
+-}
+-#else
+-static inline int ima_init_keyring(const unsigned int id)
+-{
+-	return 0;
+-}
+-#endif /* CONFIG_IMA_TRUSTED_KEYRING */
+ #endif
+diff --git a/security/integrity/ima/ima_init.c b/security/integrity/ima/ima_init.c
+index e600cad..bd79f25 100644
+--- a/security/integrity/ima/ima_init.c
++++ b/security/integrity/ima/ima_init.c
+@@ -116,7 +116,7 @@ int __init ima_init(void)
+ 	if (!ima_used_chip)
+ 		pr_info("No TPM chip found, activating TPM-bypass!\n");
+ 
+-	rc = ima_init_keyring(INTEGRITY_KEYRING_IMA);
++	rc = integrity_init_keyring(INTEGRITY_KEYRING_IMA);
+ 	if (rc)
+ 		return rc;
+ 
+diff --git a/security/integrity/integrity.h b/security/integrity/integrity.h
+index 9c61687..07726a7 100644
+--- a/security/integrity/integrity.h
++++ b/security/integrity/integrity.h
+@@ -125,8 +125,8 @@ int integrity_kernel_read(struct file *file, loff_t offset,
+ int __init integrity_read_file(const char *path, char **data);
+ 
+ #define INTEGRITY_KEYRING_EVM		0
+-#define INTEGRITY_KEYRING_MODULE	1
+-#define INTEGRITY_KEYRING_IMA		2
++#define INTEGRITY_KEYRING_IMA		1
++#define INTEGRITY_KEYRING_MODULE	2
+ #define INTEGRITY_KEYRING_MAX		3
+ 
+ #ifdef CONFIG_INTEGRITY_SIGNATURE
+@@ -149,7 +149,6 @@ static inline int integrity_init_keyring(const unsigned int id)
+ {
+ 	return 0;
+ }
+-
+ #endif /* CONFIG_INTEGRITY_SIGNATURE */
+ 
+ #ifdef CONFIG_INTEGRITY_ASYMMETRIC_KEYS
+-- 
+1.9.1
+
